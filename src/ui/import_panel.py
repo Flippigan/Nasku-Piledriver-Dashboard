@@ -80,5 +80,6 @@ def render_import_panel():
         with st.expander("Advanced: Reset Project"):
             st.warning("This will delete all data and allow re-importing a drivelog.")
             if st.button("Reset Project", type="secondary"):
-                # TODO: Implement project reset
-                st.info("Project reset not yet implemented")
+                repo.reset_all()
+                st.session_state.show_import = False
+                st.rerun()
