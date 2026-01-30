@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import date, timedelta
+from datetime import date
 
 from src.data.models import Inverter, WorkflowStep
 from src.services.progress import calculate_progress, calculate_eta, ProgressStats, EtaStats
@@ -34,64 +34,211 @@ def days_until_due(step: WorkflowStep | None) -> int | None:
     return (step.due_date - date.today()).days
 
 
-def render_inverter_card(
-    inverter: Inverter,
-    progress: ProgressStats,
-    eta: EtaStats,
-    current_step: WorkflowStep | None,
-    has_pending_alerts: bool,
-):
-    days_remaining = days_until_due(current_step)
-    color = get_status_color(current_step, days_remaining)
+# Status color mapping to CSS colors
+STATUS_COLORS = {
+    "green": "#22c55e",
+    "yellow": "#eab308",
+    "red": "#ef4444",
+}
 
-    color_emoji = {"green": "🟢", "yellow": "🟡", "red": "🔴"}[color]
+# Darker shades for gradient effect
+STATUS_COLORS_DARK = {
+    "green": "#15803d",
+    "yellow": "#a16207",
+    "red": "#b91c1c",
+}
 
-    with st.container(border=True):
-        col1, col2 = st.columns([3, 1])
 
-        with col1:
-            st.subheader(inverter.name)
+def render_compact_card(
+    inverter_id: str,
+    inverter_name: str,
+    percentage: float,
+    status_color: str,
+    step_name: str,
+    has_alerts: bool,
+) -> bool:
+    """Render a compact inverter card. Returns True if clicked."""
+    fill_color = STATUS_COLORS.get(status_color, STATUS_COLORS["green"])
+    fill_color_dark = STATUS_COLORS_DARK.get(status_color, STATUS_COLORS_DARK["green"])
+    pct = min(100, max(0, percentage))
 
-        with col2:
-            if has_pending_alerts:
-                st.markdown("**[!]**")
+    # Alert indicator HTML
+    alert_badge = ""
+    if has_alerts:
+        alert_badge = f"""
+            <div style="
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                width: 8px;
+                height: 8px;
+                background: #ef4444;
+                border-radius: 50%;
+                box-shadow: 0 0 6px #ef4444;
+            "></div>
+        """
 
-        # Progress bar
-        st.progress(progress.percentage / 100)
-        st.caption(f"{progress.percentage:.0f}% ({progress.installed_count}/{progress.total_count})")
+    # Render card HTML
+    card_html = f"""
+        <div style="
+            position: relative;
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            margin-bottom: 4px;
+        ">
+            {alert_badge}
 
-        # Current step
-        step_name = current_step.step_name if current_step else "Complete"
-        st.markdown(f"**{step_name}**")
+            <!-- Inverter Name -->
+            <div style="
+                font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+                font-size: 11px;
+                font-weight: 600;
+                color: #e2e8f0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 6px;
+            " title="{inverter_name}">{inverter_name}</div>
 
-        # Status and engineer
-        if current_step:
-            due_text = ""
-            if days_remaining is not None:
-                if days_remaining < 0:
-                    due_text = f"Overdue by {abs(days_remaining)}d"
-                elif days_remaining == 0:
-                    due_text = "Due today"
-                else:
-                    due_text = f"Due: {days_remaining}d"
+            <!-- Progress Bar Container -->
+            <div style="
+                flex: 1;
+                width: 28px;
+                background: #0f172a;
+                border-radius: 4px;
+                position: relative;
+                overflow: hidden;
+                border: 1px solid #1e293b;
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            ">
+                <!-- Grid lines for industrial feel -->
+                <div style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: repeating-linear-gradient(
+                        0deg,
+                        transparent,
+                        transparent 9px,
+                        rgba(51, 65, 85, 0.3) 9px,
+                        rgba(51, 65, 85, 0.3) 10px
+                    );
+                    pointer-events: none;
+                "></div>
 
-            engineer = current_step.assigned_engineer or "--"
-            st.caption(f"{color_emoji} {due_text} | @{engineer}")
+                <!-- Progress Fill -->
+                <div style="
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: {pct}%;
+                    background: linear-gradient(180deg, {fill_color} 0%, {fill_color_dark} 100%);
+                    border-radius: 3px;
+                    box-shadow: 0 0 10px {fill_color}40, inset 0 1px 0 rgba(255,255,255,0.2);
+                "></div>
 
-        # ETA
-        if eta.estimated_completion:
-            eta_str = eta.estimated_completion.strftime("%b %d")
-            rate_note = " (default)" if eta.is_using_default_rate else ""
-            st.caption(f"ETA: {eta_str} | {eta.piles_per_day:.0f} piles/d{rate_note}")
+                <!-- 50% marker -->
+                <div style="
+                    position: absolute;
+                    top: 50%;
+                    left: 0;
+                    right: 0;
+                    height: 1px;
+                    background: rgba(148, 163, 184, 0.3);
+                "></div>
+            </div>
 
-        # Click to expand
-        if st.button("Details", key=f"expand_{inverter.id}"):
-            st.session_state.selected_inverter_id = str(inverter.id)
-            st.rerun()
+            <!-- Percentage -->
+            <div style="
+                font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+                font-size: 14px;
+                font-weight: 700;
+                color: {fill_color};
+                margin-top: 6px;
+                text-shadow: 0 0 10px {fill_color}40;
+            ">{pct:.0f}%</div>
+
+            <!-- Step Name -->
+            <div style="
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 9px;
+                color: #94a3b8;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
+                margin-top: 2px;
+            " title="{step_name}">{step_name}</div>
+        </div>
+    """
+
+    st.markdown(card_html, unsafe_allow_html=True)
+
+    # Add a small clickable button below the card
+    return st.button(
+        "View Details",
+        key=f"select_{inverter_id}",
+        use_container_width=True,
+        type="secondary",
+    )
+
+
+def inject_compact_card_styles():
+    """Inject global CSS for compact card styling."""
+    st.markdown("""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
+
+            /* Make buttons smaller and more compact */
+            div[data-testid="column"] button[kind="secondary"] {
+                font-size: 10px !important;
+                padding: 2px 8px !important;
+                min-height: 24px !important;
+                height: 24px !important;
+                background: #1e293b !important;
+                border: 1px solid #334155 !important;
+                color: #94a3b8 !important;
+            }
+
+            div[data-testid="column"] button[kind="secondary"]:hover {
+                background: #334155 !important;
+                border-color: #475569 !important;
+                color: #e2e8f0 !important;
+            }
+
+            /* Compact grid container */
+            .compact-grid-container {
+                background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+                border-radius: 12px;
+                border: 1px solid #1e293b;
+                padding: 16px;
+                margin-top: 8px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
 
 def render_dashboard():
     repo = get_repository()
+
+    # Inject compact card styles
+    inject_compact_card_styles()
 
     # Show demo mode banner
     if is_demo_mode():
@@ -112,13 +259,21 @@ def render_dashboard():
     st.title(f"Project: {project.name}")
 
     # Header buttons
-    col1, col2, col3 = st.columns([1, 1, 4])
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
     with col1:
         if st.button("Import CSV"):
             st.session_state.show_import = True
     with col2:
         if st.button("Settings"):
             st.session_state.show_settings = True
+    with col3:
+        if st.button("Reset Project"):
+            repo.reset_all()
+            # Clear session state
+            for key in list(st.session_state.keys()):
+                if key not in ["using_demo_mode"]:
+                    del st.session_state[key]
+            st.rerun()
 
     st.divider()
 
@@ -129,25 +284,50 @@ def render_dashboard():
         st.info("No inverters found. Import a drivelog to add inverters.")
         return
 
-    # Render grid of cards (3 columns)
-    cols = st.columns(3)
+    # Collect card data
+    cards_data = []
+    for inverter in sorted(inverters, key=lambda x: x.name):
+        piles = repo.get_piles_for_inverter(inverter.id)
+        steps = repo.get_workflow_steps(inverter.id)
+        alerts = repo.get_alerts_for_inverter(inverter.id)
 
-    for i, inverter in enumerate(sorted(inverters, key=lambda x: x.name)):
-        with cols[i % 3]:
-            # Get data for this inverter
-            piles = repo.get_piles_for_inverter(inverter.id)
-            steps = repo.get_workflow_steps(inverter.id)
-            alerts = repo.get_alerts_for_inverter(inverter.id)
+        progress = calculate_progress(inverter, piles)
+        current_step = get_current_step(steps)
+        pending = get_pending_alerts(alerts)
 
-            progress = calculate_progress(inverter, piles)
-            eta = calculate_eta(inverter, piles, project.default_pile_rate)
-            current_step = get_current_step(steps)
-            pending = get_pending_alerts(alerts)
+        days_remaining = days_until_due(current_step)
+        status_color = get_status_color(current_step, days_remaining)
+        step_name = current_step.step_name if current_step else "Complete"
 
-            render_inverter_card(
-                inverter=inverter,
-                progress=progress,
-                eta=eta,
-                current_step=current_step,
-                has_pending_alerts=len(pending) > 0,
+        cards_data.append({
+            "inverter_id": str(inverter.id),
+            "name": inverter.name,
+            "percentage": progress.percentage,
+            "status_color": status_color,
+            "step_name": step_name,
+            "has_alerts": len(pending) > 0,
+        })
+
+    # Open grid container
+    st.markdown('<div class="compact-grid-container">', unsafe_allow_html=True)
+
+    # Render grid of compact cards (8 columns for dense layout)
+    num_cols = 8
+    cols = st.columns(num_cols, gap="small")
+
+    for i, card in enumerate(cards_data):
+        with cols[i % num_cols]:
+            clicked = render_compact_card(
+                inverter_id=card["inverter_id"],
+                inverter_name=card["name"],
+                percentage=card["percentage"],
+                status_color=card["status_color"],
+                step_name=card["step_name"],
+                has_alerts=card["has_alerts"],
             )
+            if clicked:
+                st.session_state.selected_inverter_id = card["inverter_id"]
+                st.rerun()
+
+    # Close grid container
+    st.markdown('</div>', unsafe_allow_html=True)
