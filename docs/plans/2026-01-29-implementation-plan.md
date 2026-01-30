@@ -17,9 +17,9 @@
 | 1 | Project Setup and Models | ✅ Complete | `000a4cc` |
 | 2 | CSV Parser Module | ✅ Complete | `8daafed` |
 | 3 | Drivelog Importer | ✅ Complete | `e14915b` |
-| 4 | Nasku Importer | ⏳ Pending | |
-| 5 | Progress and ETA Calculation Service | ⏳ Pending | |
-| 6 | Alert Service | ⏳ Pending | |
+| 4 | Nasku Importer | ✅ Complete | `980aa05` |
+| 5 | Progress and ETA Calculation Service | ✅ Complete | `05311e2` |
+| 6 | Alert Service | ✅ Complete | `a834368` |
 | 7 | Repository Interface and Supabase Implementation | ⏳ Pending | |
 | 8 | Workflow Step Constants and Factory | ⏳ Pending | |
 | 9 | Import Orchestration Service | ⏳ Pending | |
@@ -32,30 +32,7 @@
 | 16 | Integration Testing and Final Polish | ⏳ Pending | |
 
 **Last Updated:** 2026-01-29
-**Tests Passing:** 19/19
-
-### Next Steps for Continuation
-
-**Next Batch:** Tasks 4-6 (Nasku Importer, Progress Service, Alert Service)
-
-**How to continue:**
-1. Use the `superpowers:executing-plans` skill
-2. Follow TDD for each task: write failing test → verify failure → implement → verify pass → commit
-3. Execute tasks in batches of 3, then report for user review
-4. Update this progress table after each batch (mark status ✅, add commit hash)
-
-**Current state:**
-- All dependencies installed in `venv/`
-- Run tests with: `python -m pytest tests/ -v`
-- Project uses `src/import_/` (underscore) since `import` is a reserved keyword
-
-**Files created so far:**
-- `src/data/models.py` - Pydantic models (Project, Inverter, Pile, WorkflowStep, Alert)
-- `src/import_/csv_parser.py` - Base CSV parsing with MissingColumnsError
-- `src/import_/drivelog_importer.py` - Drivelog CSV parsing, extracts inverters and piles
-- `tests/conftest.py` - Shared pytest fixtures
-
-**Task 4 starts at line 698** in this file.
+**Tests Passing:** 40/40
 
 ---
 
