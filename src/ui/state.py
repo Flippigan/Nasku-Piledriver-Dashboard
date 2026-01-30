@@ -20,9 +20,19 @@ def get_repository() -> "Repository":
         supabase_key = os.getenv("SUPABASE_KEY")
 
         if supabase_url and supabase_key:
-            from src.data.supabase_repo import SupabaseRepository
-            st.session_state.repository = SupabaseRepository()
-            st.session_state.using_demo_mode = False
+            try:
+                from src.data.supabase_repo import SupabaseRepository
+                repo = SupabaseRepository()
+                # Test connection with a simple query
+                repo.get_project()
+                st.session_state.repository = repo
+                st.session_state.using_demo_mode = False
+            except Exception as e:
+                # Connection failed - fall back to demo mode
+                st.warning(f"Could not connect to Supabase: {e}. Using demo mode.")
+                from src.data.memory_repo import MemoryRepository
+                st.session_state.repository = MemoryRepository()
+                st.session_state.using_demo_mode = True
         else:
             from src.data.memory_repo import MemoryRepository
             st.session_state.repository = MemoryRepository()

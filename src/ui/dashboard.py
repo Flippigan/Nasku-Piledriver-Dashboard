@@ -1,8 +1,10 @@
 import streamlit as st
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
+from uuid import UUID
 
 from src.data.models import Inverter, WorkflowStep
-from src.services.progress import calculate_progress, calculate_eta, ProgressStats, EtaStats
+from src.services.progress import calculate_progress
 from src.services.alerts import get_pending_alerts
 from src.ui.state import get_repository, is_demo_mode
 
@@ -188,7 +190,7 @@ def render_compact_card(
         </div>
     """
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    st.html(card_html)
 
     # Add a small clickable button below the card
     return st.button(
@@ -199,9 +201,88 @@ def render_compact_card(
     )
 
 
+def _fetch_card_data_for_inverter(inverter_id: UUID, repo) -> dict:
+    """Fetch all data needed for a single inverter card."""
+    inverter = repo.get_inverter(inverter_id)
+    if not inverter:
+        return None
+
+    piles = repo.get_piles_for_inverter(inverter_id)
+    steps = repo.get_workflow_steps(inverter_id)
+    alerts = repo.get_alerts_for_inverter(inverter_id)
+
+    progress = calculate_progress(inverter, piles)
+    current_step = get_current_step(steps)
+    pending = get_pending_alerts(alerts)
+
+    days_remaining = days_until_due(current_step)
+    status_color = get_status_color(current_step, days_remaining)
+    step_name = current_step.step_name if current_step else "Complete"
+
+    return {
+        "inverter_id": str(inverter_id),
+        "name": inverter.name,
+        "percentage": progress.percentage,
+        "status_color": status_color,
+        "step_name": step_name,
+        "has_alerts": len(pending) > 0,
+    }
+
+
+def _fetch_cards_sequential(_repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+    """Fetch card data sequentially (fallback for connection errors)."""
+    cards = []
+    for inv_id in inverter_ids:
+        card = _fetch_card_data_for_inverter(inv_id, _repo)
+        if card:
+            cards.append(card)
+    return cards
+
+
+def _fetch_cards_parallel(_repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+    """Fetch card data in parallel using ThreadPoolExecutor."""
+    cards = []
+    # Use 4 workers to stay well under HTTP/2 stream limits (typically 100-250)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {
+            executor.submit(_fetch_card_data_for_inverter, inv_id, _repo): inv_id
+            for inv_id in inverter_ids
+        }
+        for future in as_completed(futures):
+            card = future.result()
+            if card:
+                cards.append(card)
+    return cards
+
+
+@st.cache_data(ttl=5)
+def _get_all_cards_data(_repo, project_id: UUID, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+    """
+    Cache dashboard card data to avoid N+1 queries on every rerun.
+
+    The _repo parameter is prefixed with underscore to tell Streamlit not to hash it.
+    TTL of 5 seconds ensures data refreshes reasonably while avoiding query storms.
+
+    Uses ThreadPoolExecutor to fetch data for all inverters in parallel,
+    with fallback to sequential fetching if HTTP/2 connection limits are hit.
+    """
+    try:
+        cards = _fetch_cards_parallel(_repo, inverter_ids)
+    except Exception:
+        # HTTP/2 connection errors - fall back to sequential
+        cards = _fetch_cards_sequential(_repo, inverter_ids)
+
+    return sorted(cards, key=lambda x: x["name"])
+
+
+def clear_dashboard_cache():
+    """Clear the cached dashboard card data. Call after data changes (imports, updates)."""
+    _get_all_cards_data.clear()
+
+
 def inject_compact_card_styles():
     """Inject global CSS for compact card styling."""
-    st.markdown("""
+    st.html("""
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
 
@@ -231,7 +312,7 @@ def inject_compact_card_styles():
                 margin-top: 8px;
             }
         </style>
-    """, unsafe_allow_html=True)
+    """)
 
 
 def render_dashboard():
@@ -269,6 +350,8 @@ def render_dashboard():
     with col3:
         if st.button("Reset Project"):
             repo.reset_all()
+            # Clear cached card data
+            _get_all_cards_data.clear()
             # Clear session state
             for key in list(st.session_state.keys()):
                 if key not in ["using_demo_mode"]:
@@ -284,32 +367,12 @@ def render_dashboard():
         st.info("No inverters found. Import a drivelog to add inverters.")
         return
 
-    # Collect card data
-    cards_data = []
-    for inverter in sorted(inverters, key=lambda x: x.name):
-        piles = repo.get_piles_for_inverter(inverter.id)
-        steps = repo.get_workflow_steps(inverter.id)
-        alerts = repo.get_alerts_for_inverter(inverter.id)
-
-        progress = calculate_progress(inverter, piles)
-        current_step = get_current_step(steps)
-        pending = get_pending_alerts(alerts)
-
-        days_remaining = days_until_due(current_step)
-        status_color = get_status_color(current_step, days_remaining)
-        step_name = current_step.step_name if current_step else "Complete"
-
-        cards_data.append({
-            "inverter_id": str(inverter.id),
-            "name": inverter.name,
-            "percentage": progress.percentage,
-            "status_color": status_color,
-            "step_name": step_name,
-            "has_alerts": len(pending) > 0,
-        })
+    # Use cached card data to avoid N+1 queries on every rerun
+    inverter_ids = tuple(inv.id for inv in inverters)
+    cards_data = _get_all_cards_data(repo, project.id, inverter_ids)
 
     # Open grid container
-    st.markdown('<div class="compact-grid-container">', unsafe_allow_html=True)
+    st.html('<div class="compact-grid-container">')
 
     # Render grid of compact cards (8 columns for dense layout)
     num_cols = 8
@@ -330,4 +393,4 @@ def render_dashboard():
                 st.rerun()
 
     # Close grid container
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.html('</div>')

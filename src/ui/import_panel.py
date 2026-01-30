@@ -1,6 +1,7 @@
 import streamlit as st
 
 from src.ui.state import get_repository
+from src.ui.dashboard import clear_dashboard_cache
 from src.services.import_service import ImportService
 from src.import_.csv_parser import MissingColumnsError
 from src.import_.nasku_importer import UnmatchedUpnError
@@ -40,6 +41,7 @@ def render_import_panel():
                             project_name=project_name,
                         )
                     st.success(f"Project '{project.name}' created successfully!")
+                    clear_dashboard_cache()
                     st.session_state.show_import = False
                     st.rerun()
                 except MissingColumnsError as e:
@@ -63,6 +65,7 @@ def render_import_panel():
                     with st.spinner("Importing nasku data..."):
                         import_service.import_nasku(nasku_file)
                     st.success("Pile status updated successfully!")
+                    clear_dashboard_cache()
                     st.session_state.show_import = False
                     st.rerun()
                 except MissingColumnsError as e:
@@ -81,5 +84,6 @@ def render_import_panel():
             st.warning("This will delete all data and allow re-importing a drivelog.")
             if st.button("Reset Project", type="secondary"):
                 repo.reset_all()
+                clear_dashboard_cache()
                 st.session_state.show_import = False
                 st.rerun()
