@@ -46,7 +46,9 @@ To persist data with a real database:
 
 2. In Supabase, go to **Settings > API** and copy:
    - **Project URL** -> `SUPABASE_URL`
-   - **anon public** key -> `SUPABASE_KEY`
+   - **anon public** key (under "Project API keys") -> `SUPABASE_KEY`
+
+   Use the **anon public** key, NOT the secret/service_role key.
 
 3. Edit `.env` with your credentials:
    ```env
