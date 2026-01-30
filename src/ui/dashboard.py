@@ -104,6 +104,9 @@ def render_dashboard():
 
     if not project:
         st.warning("No project loaded. Please import a drivelog CSV to get started.")
+        if st.button("Import Drivelog"):
+            st.session_state.show_import = True
+            st.rerun()
         return
 
     st.title(f"Project: {project.name}")
