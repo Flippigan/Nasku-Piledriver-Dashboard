@@ -24,9 +24,9 @@
 | 8 | Workflow Step Constants and Factory | ✅ Complete | `d859f5f` |
 | 9 | Import Orchestration Service | ✅ Complete | `48408cc` |
 | 10 | Supabase Database Setup Script | ✅ Complete | `770a568` |
-| 11 | Streamlit UI - Dashboard Grid | ⏳ Pending | |
-| 12 | Streamlit UI - Expanded Card with Workflow | ⏳ Pending | |
-| 13 | Streamlit UI - Import Panel | ⏳ Pending | |
+| 11 | Streamlit UI - Dashboard Grid | ✅ Complete | `a2bf55a` |
+| 12 | Streamlit UI - Expanded Card with Workflow | ✅ Complete | `3461271` |
+| 13 | Streamlit UI - Import Panel | ✅ Complete | `a437d0c` |
 | 14 | Streamlit UI - Settings Panel | ⏳ Pending | |
 | 15 | PyInstaller Packaging | ⏳ Pending | |
 | 16 | Integration Testing and Final Polish | ⏳ Pending | |
