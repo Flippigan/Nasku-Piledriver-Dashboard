@@ -77,3 +77,9 @@ class Repository(ABC):
     @abstractmethod
     def acknowledge_alert(self, alert_id: UUID) -> Alert:
         pass
+
+    # Reset methods
+    @abstractmethod
+    def reset_all(self) -> None:
+        """Delete all data (project, inverters, piles, workflow_steps, alerts)."""
+        pass

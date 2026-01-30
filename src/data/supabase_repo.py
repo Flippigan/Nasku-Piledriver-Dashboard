@@ -84,12 +84,14 @@ class SupabaseRepository(Repository):
         return [Pile(**row) for row in result.data]
 
     def save_piles(self, piles: list[Pile]) -> list[Pile]:
-        data = [p.model_dump(mode="json") for p in piles]
+        # Exclude computed field 'is_installed' - it's derived from hammering_status/flag
+        data = [p.model_dump(mode="json", exclude={"is_installed"}) for p in piles]
         result = self.client.table("piles").insert(data).execute()
         return [Pile(**row) for row in result.data]
 
     def update_pile(self, pile: Pile) -> Pile:
-        data = pile.model_dump(mode="json")
+        # Exclude computed field 'is_installed' - it's derived from hammering_status/flag
+        data = pile.model_dump(mode="json", exclude={"is_installed"})
         result = (
             self.client.table("piles")
             .update(data)
@@ -159,3 +161,14 @@ class SupabaseRepository(Repository):
             .execute()
         )
         return Alert(**result.data[0])
+
+    # Reset methods
+    def reset_all(self) -> None:
+        """Delete all data. Order matters: children before parents (FK constraints)."""
+        # Supabase requires a filter - use neq with impossible UUID to match all
+        _ALL = "00000000-0000-0000-0000-000000000000"
+        self.client.table("alerts").delete().neq("id", _ALL).execute()
+        self.client.table("workflow_steps").delete().neq("id", _ALL).execute()
+        self.client.table("piles").delete().neq("id", _ALL).execute()
+        self.client.table("inverters").delete().neq("id", _ALL).execute()
+        self.client.table("projects").delete().neq("id", _ALL).execute()

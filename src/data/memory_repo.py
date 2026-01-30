@@ -158,3 +158,11 @@ class MemoryRepository(Repository):
         alert = self._alerts[alert_id]
         alert.acknowledged = True
         return alert
+
+    # Reset methods
+    def reset_all(self) -> None:
+        self._project = None
+        self._inverters.clear()
+        self._piles.clear()
+        self._workflow_steps.clear()
+        self._alerts.clear()
