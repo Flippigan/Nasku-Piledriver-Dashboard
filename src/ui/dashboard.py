@@ -255,29 +255,40 @@ def _fetch_cards_parallel(_repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
     return cards
 
 
-@st.cache_data(ttl=5)
-def _get_all_cards_data(_repo, project_id: UUID, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+def _fetch_all_cards_data(repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
     """
-    Cache dashboard card data to avoid N+1 queries on every rerun.
+    Fetch dashboard card data for all inverters.
 
-    The _repo parameter is prefixed with underscore to tell Streamlit not to hash it.
-    TTL of 5 seconds ensures data refreshes reasonably while avoiding query storms.
-
-    Uses ThreadPoolExecutor to fetch data for all inverters in parallel,
+    Uses ThreadPoolExecutor to fetch data in parallel,
     with fallback to sequential fetching if HTTP/2 connection limits are hit.
     """
     try:
-        cards = _fetch_cards_parallel(_repo, inverter_ids)
+        cards = _fetch_cards_parallel(repo, inverter_ids)
     except Exception:
         # HTTP/2 connection errors - fall back to sequential
-        cards = _fetch_cards_sequential(_repo, inverter_ids)
+        cards = _fetch_cards_sequential(repo, inverter_ids)
 
     return sorted(cards, key=lambda x: x["name"])
 
 
+def get_cards_data(repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+    """Get cached cards data from session_state, fetching if not present."""
+    if "cards_data" not in st.session_state:
+        with st.spinner("Loading inverter data..."):
+            st.session_state["cards_data"] = _fetch_all_cards_data(repo, inverter_ids)
+    return st.session_state["cards_data"]
+
+
+def refresh_cards_data(repo, inverter_ids: tuple[UUID, ...]) -> list[dict]:
+    """Force refresh cards data from the database."""
+    st.session_state["cards_data"] = _fetch_all_cards_data(repo, inverter_ids)
+    return st.session_state["cards_data"]
+
+
 def clear_dashboard_cache():
     """Clear the cached dashboard card data. Call after data changes (imports, updates)."""
-    _get_all_cards_data.clear()
+    if "cards_data" in st.session_state:
+        del st.session_state["cards_data"]
 
 
 def inject_compact_card_styles():
@@ -340,7 +351,7 @@ def render_dashboard():
     st.title(f"Project: {project.name}")
 
     # Header buttons
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 2])
     with col1:
         if st.button("Import CSV"):
             st.session_state.show_import = True
@@ -348,10 +359,13 @@ def render_dashboard():
         if st.button("Settings"):
             st.session_state.show_settings = True
     with col3:
+        if st.button("🔄 Refresh"):
+            clear_dashboard_cache()
+            st.rerun()
+    with col4:
         if st.button("Reset Project"):
             repo.reset_all()
-            # Clear cached card data
-            _get_all_cards_data.clear()
+            clear_dashboard_cache()
             # Clear session state
             for key in list(st.session_state.keys()):
                 if key not in ["using_demo_mode"]:
@@ -367,9 +381,9 @@ def render_dashboard():
         st.info("No inverters found. Import a drivelog to add inverters.")
         return
 
-    # Use cached card data to avoid N+1 queries on every rerun
+    # Use session_state cached card data - click Refresh to update
     inverter_ids = tuple(inv.id for inv in inverters)
-    cards_data = _get_all_cards_data(repo, project.id, inverter_ids)
+    cards_data = get_cards_data(repo, inverter_ids)
 
     # Open grid container
     st.html('<div class="compact-grid-container">')
