@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from src.data.models import Inverter, WorkflowStep
 from src.services.progress import calculate_progress, calculate_eta, ProgressStats, EtaStats
 from src.services.alerts import get_pending_alerts
-from src.ui.state import get_repository
+from src.ui.state import get_repository, is_demo_mode
 
 
 def get_status_color(step: WorkflowStep | None, days_remaining: int | None) -> str:
@@ -92,6 +92,14 @@ def render_inverter_card(
 
 def render_dashboard():
     repo = get_repository()
+
+    # Show demo mode banner
+    if is_demo_mode():
+        st.info(
+            "**Demo Mode** - Using sample data. "
+            "Configure SUPABASE_URL and SUPABASE_KEY in .env to connect to a database."
+        )
+
     project = repo.get_project()
 
     if not project:
