@@ -8,7 +8,6 @@ Run the app without any database setup to explore with sample data:
 
 ```bash
 # Create and activate virtual environment
-python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -46,9 +45,7 @@ To persist data with a real database:
 
 2. In Supabase, go to **Settings > API** and copy:
    - **Project URL** -> `SUPABASE_URL`
-   - **anon public** key (under "Project API keys") -> `SUPABASE_KEY`
-
-   Use the **anon public** key, NOT the secret/service_role key.
+   - **anon public** key -> `SUPABASE_KEY`
 
 3. Edit `.env` with your credentials:
    ```env
