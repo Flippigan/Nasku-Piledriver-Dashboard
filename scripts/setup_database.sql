@@ -31,6 +31,7 @@ CREATE TABLE piles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     inverter_id UUID NOT NULL REFERENCES inverters(id) ON DELETE CASCADE,
     upn TEXT NOT NULL,
+    pile_installed TEXT DEFAULT 'No',
     hammering_status TEXT,
     hammering_flag TEXT,
     hammering_time_sec DOUBLE PRECISION,
