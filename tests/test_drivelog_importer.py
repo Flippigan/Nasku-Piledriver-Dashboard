@@ -72,3 +72,27 @@ class TestDrivelogData:
         assert data.inverters["1"] == 2
         assert len(data.piles["1"]) == 2
         assert len(data.piles["2"]) == 2
+
+
+DRIVELOG_WITH_PILE_INSTALLED = """Inverter,UPN,Hammering_Status,Hammering_Flag,Pile_Installed
+1,41659,COMPLETED,GOOD,Yes
+1,41660,COMPLETED,REFUSED,Refusal
+2,50001,INCOMPLETE,UNSET,No
+"""
+
+
+class TestExtractPilesWithPileInstalled:
+    def test_extracts_pile_installed_when_present(self):
+        df = parse_drivelog(StringIO(DRIVELOG_WITH_PILE_INSTALLED))
+        piles = extract_piles(df)
+
+        assert piles["1"][0]["pile_installed"] == "Yes"
+        assert piles["1"][1]["pile_installed"] == "Refusal"
+        assert piles["2"][0]["pile_installed"] == "No"
+
+    def test_defaults_pile_installed_to_no_when_missing(self):
+        df = parse_drivelog(StringIO(SAMPLE_DRIVELOG))
+        piles = extract_piles(df)
+
+        # When Pile_Installed column is missing, should default to "No"
+        assert piles["1"][0]["pile_installed"] == "No"
