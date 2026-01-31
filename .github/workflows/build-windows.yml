@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -35,6 +38,17 @@ jobs:
         run: |
           pyinstaller build_windows.spec --clean
 
+      - name: Verify build output
+        run: |
+          dir dist
+          if (Test-Path "dist/InverterTracker.exe") {
+            Write-Host "✓ InverterTracker.exe found"
+          } else {
+            Write-Host "✗ InverterTracker.exe NOT found"
+            exit 1
+          }
+        shell: pwsh
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -44,7 +58,7 @@ jobs:
 
       - name: Create Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/InverterTracker.exe
           generate_release_notes: true
