@@ -39,6 +39,7 @@ def make_pile(inverter_id, upn, installed=True, driven_at=None, hammering_sec=10
         id=uuid4(),
         inverter_id=inverter_id,
         upn=upn,
+        pile_installed="Yes" if installed else "No",
         hammering_status="COMPLETED" if installed else "INCOMPLETE",
         hammering_flag="GOOD" if installed else "UNSET",
         hammering_time_sec=hammering_sec if installed else None,

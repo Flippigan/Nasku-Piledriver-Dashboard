@@ -60,6 +60,7 @@ class MemoryRepository(Repository):
                     id=uuid4(),
                     inverter_id=inv.id,
                     upn=f"{name}-{i+1:04d}",
+                    pile_installed="Yes" if is_installed else "No",
                     hammering_status="COMPLETED" if is_installed else "INCOMPLETE",
                     hammering_flag="GOOD" if is_installed else "UNSET",
                     hammering_time_sec=150.0 if is_installed else None,

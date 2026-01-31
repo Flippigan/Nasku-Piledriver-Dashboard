@@ -10,13 +10,13 @@ from src.services.alerts import check_milestone_alerts
 from src.data.models import Project, Inverter, Pile
 
 
-DRIVELOG = """Inverter,UPN,Hammering_Status,Hammering_Flag
-1,A001,COMPLETED,GOOD
-1,A002,COMPLETED,GOOD
-1,A003,INCOMPLETE,UNSET
-1,A004,INCOMPLETE,UNSET
-2,B001,INCOMPLETE,UNSET
-2,B002,INCOMPLETE,UNSET
+DRIVELOG = """Inverter,UPN,Hammering_Status,Hammering_Flag,Pile_Installed
+1,A001,COMPLETED,GOOD,Yes
+1,A002,COMPLETED,GOOD,Yes
+1,A003,INCOMPLETE,UNSET,No
+1,A004,INCOMPLETE,UNSET,No
+2,B001,INCOMPLETE,UNSET,No
+2,B002,INCOMPLETE,UNSET,No
 """
 
 NASKU = """name,processedAt,positioningTime,hammeringTime,hammeringStatus,hammeringFlag
