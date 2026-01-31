@@ -4,6 +4,7 @@ from typing import TextIO, BinaryIO
 import pandas as pd
 
 from src.import_.csv_parser import parse_csv, validate_required_columns
+from src.import_.pile_installed import compute_pile_installed
 
 
 REQUIRED_COLUMNS = [
@@ -63,11 +64,14 @@ def extract_pile_updates(df: pd.DataFrame) -> dict[str, dict]:
     updates = {}
     for _, row in df.iterrows():
         upn = str(row["name"])
+        hammering_status = row["hammeringStatus"] if pd.notna(row["hammeringStatus"]) else None
+        hammering_flag = row["hammeringFlag"] if pd.notna(row["hammeringFlag"]) else None
         updates[upn] = {
-            "hammering_status": row["hammeringStatus"] if pd.notna(row["hammeringStatus"]) else None,
-            "hammering_flag": row["hammeringFlag"] if pd.notna(row["hammeringFlag"]) else None,
+            "hammering_status": hammering_status,
+            "hammering_flag": hammering_flag,
             "hammering_time_sec": _parse_time_ms(row["hammeringTime"]),
             "positioning_time_sec": _parse_time_ms(row["positioningTime"]),
             "driven_at": _parse_timestamp(row["processedAt"]),
+            "pile_installed": compute_pile_installed(hammering_status, hammering_flag),
         }
     return updates

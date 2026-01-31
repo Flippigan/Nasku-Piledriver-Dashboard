@@ -75,3 +75,34 @@ class TestNaskuData:
         assert len(data.updates) == 3
         assert "27117" in data.updates
         assert data.updates["29852"]["positioning_time_sec"] == 80.5  # ms -> sec
+
+
+class TestExtractPileUpdatesWithPileInstalled:
+    def test_computes_pile_installed_yes_for_completed(self):
+        df = parse_nasku(StringIO(SAMPLE_NASKU))
+        updates = extract_pile_updates(df)
+
+        # COMPLETED + GOOD = Yes
+        assert updates["27117"]["pile_installed"] == "Yes"
+        # COMPLETED + GOOD = Yes
+        assert updates["29852"]["pile_installed"] == "Yes"
+
+    def test_computes_pile_installed_no_for_incomplete(self):
+        df = parse_nasku(StringIO(SAMPLE_NASKU))
+        updates = extract_pile_updates(df)
+
+        # INCOMPLETE_NO_FINISH_TIME + UNSET = No
+        assert updates["47574"]["pile_installed"] == "No"
+
+
+NASKU_WITH_REFUSAL = """name,processedAt,positioningTime,hammeringTime,hammeringStatus,hammeringFlag
+12345,2026-01-16T13:07:21.722-06:00,80000,17870,COMPLETED,REFUSED
+"""
+
+
+class TestExtractPileUpdatesRefusal:
+    def test_computes_pile_installed_refusal_for_refused_flag(self):
+        df = parse_nasku(StringIO(NASKU_WITH_REFUSAL))
+        updates = extract_pile_updates(df)
+
+        assert updates["12345"]["pile_installed"] == "Refusal"
