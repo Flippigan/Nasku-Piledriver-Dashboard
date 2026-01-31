@@ -4,8 +4,15 @@
 import streamlit
 import os
 from pathlib import Path
+from PyInstaller.utils.hooks import copy_metadata
 
 streamlit_path = os.path.dirname(streamlit.__file__)
+
+# Collect metadata for packages that use importlib.metadata.version()
+metadata_datas = []
+metadata_datas += copy_metadata('streamlit')
+metadata_datas += copy_metadata('pydantic')
+metadata_datas += copy_metadata('altair')
 
 # Collect all src files
 src_files = []
@@ -21,7 +28,7 @@ a = Analysis(
         (streamlit_path, 'streamlit'),
         ('src', 'src'),
         ('.env', '.'),
-    ],
+    ] + metadata_datas,
     hiddenimports=[
         'streamlit',
         'streamlit.web.cli',

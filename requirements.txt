@@ -6,3 +6,4 @@ python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-cov>=4.0.0
 pyinstaller>=6.0.0
+pyinstaller-hooks-contrib>=2024.0
