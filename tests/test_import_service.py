@@ -58,6 +58,21 @@ class TestImportDrivelog:
         assert mock_repo.save_workflow_steps.called
 
 
+class TestImportDrivelogPileInstalled:
+    def test_passes_pile_installed_to_piles(self, mock_repo):
+        drivelog_with_installed = """Inverter,UPN,Hammering_Status,Hammering_Flag,Pile_Installed
+1,12345,COMPLETED,GOOD,Yes
+1,12346,COMPLETED,REFUSED,Refusal
+"""
+        service = ImportService(mock_repo)
+        service.import_drivelog(StringIO(drivelog_with_installed), "Test")
+
+        # Check the piles that were saved
+        saved_piles = mock_repo.save_piles.call_args[0][0]
+        assert saved_piles[0].pile_installed == "Yes"
+        assert saved_piles[1].pile_installed == "Refusal"
+
+
 class TestImportNasku:
     def test_updates_existing_piles(self, mock_repo):
         # Setup existing piles
@@ -118,3 +133,43 @@ class TestImportNasku:
         service = ImportService(mock_repo)
         with pytest.raises(UnmatchedUpnError):
             service.import_nasku(StringIO(SAMPLE_NASKU))
+
+
+class TestImportNaskuPileInstalled:
+    def test_updates_pile_installed_from_nasku(self, mock_repo):
+        inverter_id = uuid4()
+        existing_pile = Pile(
+            id=uuid4(),
+            inverter_id=inverter_id,
+            upn="12345",
+            pile_installed="No",
+        )
+        mock_repo.get_pile_by_upn.return_value = existing_pile
+        mock_repo.update_pile.side_effect = lambda p: p
+        mock_repo.get_piles_for_inverter.return_value = [existing_pile]
+        mock_repo.get_inverters.return_value = [
+            Inverter(
+                id=inverter_id,
+                project_id=uuid4(),
+                name="1",
+                total_piles=1,
+                created_at=datetime.now(),
+            )
+        ]
+        mock_repo.get_project.return_value = Project(
+            id=uuid4(),
+            name="Test",
+            default_scan_threshold_pct=90,
+            default_pile_rate=50,
+            created_at=datetime.now(),
+        )
+
+        nasku_data = """name,processedAt,positioningTime,hammeringTime,hammeringStatus,hammeringFlag
+12345,2026-01-16T13:07:21.722-06:00,80000,17870,COMPLETED,GOOD
+"""
+        service = ImportService(mock_repo)
+        service.import_nasku(StringIO(nasku_data))
+
+        # Verify pile_installed was updated
+        updated_pile = mock_repo.update_pile.call_args[0][0]
+        assert updated_pile.pile_installed == "Yes"

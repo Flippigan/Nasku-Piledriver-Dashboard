@@ -51,6 +51,7 @@ class ImportService:
                     id=uuid4(),
                     inverter_id=inverter.id,
                     upn=p["upn"],
+                    pile_installed=p["pile_installed"],
                     hammering_status=p["hammering_status"],
                     hammering_flag=p["hammering_flag"],
                 )
@@ -97,4 +98,5 @@ class ImportService:
                 pile.hammering_time_sec = update["hammering_time_sec"]
                 pile.positioning_time_sec = update["positioning_time_sec"]
                 pile.driven_at = update["driven_at"]
+                pile.pile_installed = update["pile_installed"]
                 self.repo.update_pile(pile)
