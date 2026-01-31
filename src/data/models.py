@@ -27,6 +27,7 @@ class Pile(BaseModel):
     id: UUID
     inverter_id: UUID
     upn: str
+    pile_installed: str = "No"  # "Yes", "No", or "Refusal"
     hammering_status: Optional[str] = None
     hammering_flag: Optional[str] = None
     hammering_time_sec: Optional[float] = None
@@ -36,10 +37,7 @@ class Pile(BaseModel):
     @computed_field
     @property
     def is_installed(self) -> bool:
-        return (
-            self.hammering_status == "COMPLETED"
-            and self.hammering_flag == "GOOD"
-        )
+        return self.pile_installed == "Yes"
 
 
 class WorkflowStep(BaseModel):

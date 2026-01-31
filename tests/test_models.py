@@ -39,6 +39,7 @@ def test_pile_installed_when_completed_and_good():
         id=uuid4(),
         inverter_id=uuid4(),
         upn="12345",
+        pile_installed="Yes",
         hammering_status="COMPLETED",
         hammering_flag="GOOD",
         hammering_time_sec=150.5,
@@ -53,6 +54,7 @@ def test_pile_not_installed_when_incomplete():
         id=uuid4(),
         inverter_id=uuid4(),
         upn="12345",
+        pile_installed="No",
         hammering_status="INCOMPLETE_NO_FINISH_TIME",
         hammering_flag="UNSET",
         hammering_time_sec=None,
@@ -67,6 +69,7 @@ def test_pile_not_installed_when_bad_flag():
         id=uuid4(),
         inverter_id=uuid4(),
         upn="12345",
+        pile_installed="No",
         hammering_status="COMPLETED",
         hammering_flag="BAD",
         hammering_time_sec=150.5,
@@ -104,3 +107,43 @@ def test_alert_has_required_fields():
     assert alert.alert_type == "milestone_reached"
     assert alert.threshold_value == 75
     assert alert.acknowledged is False
+
+
+def test_pile_installed_yes_means_is_installed_true():
+    pile = Pile(
+        id=uuid4(),
+        inverter_id=uuid4(),
+        upn="12345",
+        pile_installed="Yes",
+    )
+    assert pile.is_installed is True
+
+
+def test_pile_installed_no_means_is_installed_false():
+    pile = Pile(
+        id=uuid4(),
+        inverter_id=uuid4(),
+        upn="12345",
+        pile_installed="No",
+    )
+    assert pile.is_installed is False
+
+
+def test_pile_installed_refusal_means_is_installed_false():
+    pile = Pile(
+        id=uuid4(),
+        inverter_id=uuid4(),
+        upn="12345",
+        pile_installed="Refusal",
+    )
+    assert pile.is_installed is False
+
+
+def test_pile_installed_defaults_to_no():
+    pile = Pile(
+        id=uuid4(),
+        inverter_id=uuid4(),
+        upn="12345",
+    )
+    assert pile.pile_installed == "No"
+    assert pile.is_installed is False
