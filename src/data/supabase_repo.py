@@ -84,13 +84,13 @@ class SupabaseRepository(Repository):
         return [Pile(**row) for row in result.data]
 
     def save_piles(self, piles: list[Pile]) -> list[Pile]:
-        # Exclude computed field 'is_installed' - it's derived from hammering_status/flag
+        # Exclude computed field 'is_installed' - it's derived from pile_installed
         data = [p.model_dump(mode="json", exclude={"is_installed"}) for p in piles]
         result = self.client.table("piles").insert(data).execute()
         return [Pile(**row) for row in result.data]
 
     def update_pile(self, pile: Pile) -> Pile:
-        # Exclude computed field 'is_installed' - it's derived from hammering_status/flag
+        # Exclude computed field 'is_installed' - it's derived from pile_installed
         data = pile.model_dump(mode="json", exclude={"is_installed"})
         result = (
             self.client.table("piles")
